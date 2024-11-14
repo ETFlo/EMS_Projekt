@@ -1,0 +1,34 @@
+# jupyterlab<4.0
+# jupyterlab-git  # >=0.50.0a2 # if working with Lab 4.x
+notebook  # alternatively jupyter notebook
+
+numpy
+pandas
+matplotlib
+
+xlrd  # for Excel parsing for pandas
+holidays
+
+pandapower>=2.14.11  # Require up to date version
+simbench
+
+# pandapower dependencies
+numba  # For faster calculations
+openpyxl  # If writing to Excel
+
+pvlib
+
+# Optional
+python-igraph
+mitosheet
+
+# Dash
+plotly
+dash
+dash_bootstrap_components
+
+
+# Code Formatting
+black
+isort
+jupyterlab-code-formatter
