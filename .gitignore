@@ -1,0 +1,10 @@
+# Automatic files from python IDEs
+.ipynb_checkpoints/
+.jupyter/
+.vscode/
+.idea/
+__pycache__/
+
+# I save notebooks from others in this folder
+external/
+outputs/
