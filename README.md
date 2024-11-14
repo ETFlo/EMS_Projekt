@@ -21,3 +21,7 @@ Erstellung einer Topologie
 Netzqualität -> Frequenz
 Spannungsstabilität
 Frequenzstäbilität
+
+# Info:
+- Simbench für größere Netze
+- Simulation in Julia? Multinetwork storage optimization with PandaModels.jl
