@@ -2,17 +2,19 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from dataclasses import dataclass
 
-
+@dataclass
 class Battery:
-    def __init__(self, SoC=0, max_capacity=10):
-        self.SoC = SoC                      # Ladezustand in kWh
-        self.max_capacity = max_capacity    # Maximale Kapazität in kWh
-        self.max_charge = 5                 # Maximale Ladeleistung in kW
-        self.max_discharge = 5              # Maximale Entladeleistung in kW
-        self.time_full = 0                  # Zeit, in der die Batterie voll ist
-        self.time_empty = 0                 # Zeit, in der die Batterie leer ist
+    #def __init__(self, SoC=0, max_capacity=10):
+    SoC:float = 0                     # Ladezustand in kWh
+    max_capacity:float = 10             # Maximale Kapazität in kWh
+    max_charge:float = 5                # Maximale Ladeleistung in kW
+    max_discharge:float = 5             # Maximale Entladeleistung in kW
+    time_full:float = 0                  # Zeit, in der die Batterie voll ist
+    time_empty:float = 0                 # Zeit, in der die Batterie leer ist
 
+    # kWh ändern
     def charge(self, kWh):
             if(kWh <= self.max_charge):
                 if((self.SoC + kWh) >= self.max_capacity):
@@ -21,7 +23,7 @@ class Battery:
                     self.time_full += 1
                     return remaining_power       # Jener Anteil der nicht geladen werden konnte
                 
-                elif((self.SoC + kWh) < self.max_capacity):
+                elif((self.SoC + kWh) < self.max_capacity):         # nicht notwendig
                     self.SoC = self.SoC + kWh 
                     return 0                                        # Jener Anteil der nicht geladen werden konnte
 
@@ -32,7 +34,7 @@ class Battery:
                     self.time_full += 1
                     return remaining_power       # Jener Anteil der nicht geladen werden konnte
                 
-                elif((self.SoC + self.max_charge) < self.max_capacity):
+                elif((self.SoC + self.max_charge) < self.max_capacity):     # nicht notwendig
                     self.SoC = self.SoC + self.max_charge
                     return 0                                        # Jener Anteil der nicht geladen werden konnte
 
@@ -81,15 +83,15 @@ def pv(factor, filename_pv):
 if __name__ == "__main__":
     
     # PV-Daten laden
-    pv_size = 70       # Göße der PV-Anlage in kWp
+    pv_size = 25       # Göße der PV-Anlage in kWp
     filename_pv = "C:/Users/flori/EMS/EMS_Projekt/Flo/files/pv_1kWp.csv"    # r"...\...\"
     pv_scaled = pv(pv_size, filename_pv)      # PV-Anlage Daten einlesen
 
     # Batterie erstellen
-    battery = Battery(SoC=0, max_capacity=100)
+    battery = Battery(SoC=0, max_capacity=15, max_charge=20)
 
     # Nachfrage festlegen
-    constant_demand = 3    # Konstante Entladung in kWh
+    constant_demand = 5    # Konstante Entladung in kWh
 
     time_period = 8760      # Anzahl der Stunden im Jahr -> muss mit den Anzahl der Zeilen vom Dataframe df_p_s zusammenpassen
 
@@ -112,6 +114,7 @@ if __name__ == "__main__":
             Demand_cutoff[i] = battery.discharge(discharge_amount)
             SoC_over_time[i] = battery.SoC
 
+    print("Full",battery.time_full)
     # Erstelle den Plot
     plt.figure(figsize=(12, 6))
 
