@@ -59,7 +59,7 @@ class Battery:
                     self.time_empty += 1
                     return remaining_power                           # Jener Anteil von Energie in kWh der nicht mehr entladen werden kann
                 elif((self.SoC - self.max_discharge) > 0):
-                    self.SoC = self.SoC - kWh
+                    self.SoC = self.SoC - self.max_discharge
                     return 0                                        # Jener Anteil von Energie in kWh der nicht mehr entladen werden kann 
 
 
@@ -83,15 +83,15 @@ def pv(factor, filename_pv):
 if __name__ == "__main__":
     
     # PV-Daten laden
-    pv_size = 25       # Göße der PV-Anlage in kWp
+    pv_size = 10       # Göße der PV-Anlage in kWp
     filename_pv = "C:/Users/flori/EMS/EMS_Projekt/Flo/files/pv_1kWp.csv"    # r"...\...\"
     pv_scaled = pv(pv_size, filename_pv)      # PV-Anlage Daten einlesen
 
     # Batterie erstellen
-    battery = Battery(SoC=0, max_capacity=15, max_charge=20)
+    battery = Battery(SoC=0, max_capacity=20, max_charge=10, max_discharge=10)
 
     # Nachfrage festlegen
-    constant_demand = 5    # Konstante Entladung in kWh
+    constant_demand = 2    # Konstante Entladung in kWh
 
     time_period = 8760      # Anzahl der Stunden im Jahr -> muss mit den Anzahl der Zeilen vom Dataframe df_p_s zusammenpassen
 
