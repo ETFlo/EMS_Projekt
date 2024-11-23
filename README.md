@@ -21,6 +21,11 @@ Erstellung einer Topologie
 Netzqualität -> Frequenz
 Spannungsstabilität
 Frequenzstäbilität
+pandapower -> Tutorial (Einstellung -> "Master")
+
+pandapower
+"building_a_controller"
+"time series advanced output"
 
 # Info:
 - Simbench für größere Netze
