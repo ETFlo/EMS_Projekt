@@ -14,22 +14,22 @@ class Battery:
     time_full:float = 0                  # Zeit, in der die Batterie voll ist
     time_empty:float = 0                 # Zeit, in der die Batterie leer ist
 
-    # kWh ändern
-    def charge(self, kWh):
-            if(kWh <= self.max_charge):
-                if((self.SoC + kWh) >= self.max_capacity):
-                    remaining_power = self.SoC + kWh - self.max_capacity
+
+    def charge(self, charge):
+            if(charge <= self.max_charge):
+                if((self.SoC + charge) >= self.max_capacity):
+                    remaining_power = self.SoC + charge - self.max_capacity
                     self.SoC = self.max_capacity
                     self.time_full += 1
                     return remaining_power       # Jener Anteil der nicht geladen werden konnte
                 
-                elif((self.SoC + kWh) < self.max_capacity):         # nicht notwendig
-                    self.SoC = self.SoC + kWh 
+                elif((self.SoC + charge) < self.max_capacity):         # nicht notwendig
+                    self.SoC = self.SoC + charge 
                     return 0                                        # Jener Anteil der nicht geladen werden konnte
 
-            elif(kWh > self.max_charge):
+            elif(charge > self.max_charge):
                 if((self.SoC + self.max_charge) >= self.max_capacity):
-                    remaining_power = self.SoC + kWh - self.max_capacity
+                    remaining_power = self.SoC + charge - self.max_capacity
                     self.SoC = self.max_capacity
                     self.time_full += 1
                     return remaining_power       # Jener Anteil der nicht geladen werden konnte
@@ -40,21 +40,21 @@ class Battery:
 
             
             
-    def discharge(self, kWh):
+    def discharge(self, charge):
             
-            if(kWh <= self.max_discharge):
-                if((self.SoC - kWh) <= 0):
-                    remaining_power = kWh - self.SoC 
+            if(charge <= self.max_discharge):
+                if((self.SoC - charge) <= 0):
+                    remaining_power = charge - self.SoC 
                     self.SoC = 0
                     self.time_empty += 1
                     return remaining_power                          # Jener Anteil von Energie in kWh der nicht mehr entladen werden kann
-                elif((self.SoC - kWh) > 0):
-                    self.SoC = self.SoC - kWh
+                elif((self.SoC - charge) > 0):
+                    self.SoC = self.SoC - charge
                     return 0                                        # Jener Anteil von Energie in kWh der nicht mehr entladen werden kann 
             
-            elif(kWh > self.max_discharge):
+            elif(charge > self.max_discharge):
                 if((self.SoC - self.max_discharge) <= 0):
-                    remaining_power = kWh - self.SoC
+                    remaining_power = charge - self.SoC
                     self.SoC = 0
                     self.time_empty += 1
                     return remaining_power                           # Jener Anteil von Energie in kWh der nicht mehr entladen werden kann
@@ -83,17 +83,17 @@ def pv(factor, filename_pv):
 if __name__ == "__main__":
     
     # PV-Daten laden
-    pv_size = 10       # Göße der PV-Anlage in kWp
+    pv_size = 20       # Göße der PV-Anlage in kWp
     filename_pv = "C:/Users/flori/EMS/EMS_Projekt/Flo/files/pv_1kWp.csv"    # r"...\...\"
     pv_scaled = pv(pv_size, filename_pv)      # PV-Anlage Daten einlesen
 
     # Batterie erstellen
-    battery = Battery(SoC=0, max_capacity=20, max_charge=10, max_discharge=10)
+    battery = Battery(SoC=0, max_capacity=12, max_charge=5, max_discharge=5)
 
     # Nachfrage festlegen
-    constant_demand = 2    # Konstante Entladung in kWh
+    constant_demand = 2         # Konstante Entladung in kWh
 
-    time_period = 8760      # Anzahl der Stunden im Jahr -> muss mit den Anzahl der Zeilen vom Dataframe df_p_s zusammenpassen
+    time_period = 8760          # Anzahl der Stunden im Jahr -> muss mit den Anzahl der Zeilen vom Dataframe df_p_s zusammenpassen
 
     # Ergebnisse speichern
     SoC_over_time = np.zeros(time_period)
