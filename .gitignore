@@ -8,3 +8,7 @@ __pycache__/
 # I save notebooks from others in this folder
 external/
 outputs/
+
+# Don't push
+uebung2.py
+typical_pv_results.csv
