@@ -89,7 +89,7 @@ pv_3_data = pv_battery_model.pv(20, filename_pv) / 1000
 
 
 # Simulation über alle Zeitschritte
-for t in range(np.size(pv_1_data)):
+for t in range(2000):
 
     # PV-Leistungen für diesen Zeitschritt setzen
     # PV-Daten zuweisen
