@@ -6,7 +6,7 @@ def spannungsplot(net, results_df, time):
     Gibt einen Spannungsplot aus.
 
     :param net: Benötigt die Pandapower Netzwerk
-    :param results_df: Benötigt das Results Dictionary
+    :param results_df: Benötigt den results Dataframe
     :param time: Die Zeitinstanz in der er Plot erstellt werden soll
     :return: Erstellt einen Plot
     """ 
