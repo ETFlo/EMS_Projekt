@@ -2,8 +2,9 @@ import pandapower as pp
 import pandapower.plotting as plot
 import numpy as np
 import pandas as pd
-import pv_battery_model as pv_battery_model
+import pv_battery_model_v2 as pv_battery_model
 import matplotlib.pyplot as plt
+from plotfunktion import spannungsplot
 
 # Erstellung eines leeren Netzes
 net = pp.create_empty_network()
@@ -44,7 +45,7 @@ pp.create_line(net, v2_1, v2_2, std_type="NAYY 4x50 SE", length_km=0.1, name="li
 pp.create_line(net, v2_2, v2_2_1_1, std_type="NAYY 4x50 SE", length_km=0.1, name="line2.2.1.1")
 pp.create_line(net, v2_2_1_1, v2_2_1_2, std_type="NAYY 4x50 SE", length_km=0.1, name="line2.2.1.2")
 pp.create_line(net, v2_2, v2_2_2_1, std_type="NAYY 4x50 SE", length_km=0.1, name="line2.2.2.1")
-pp.create_line(net, v2_2_2_1, v2_2_2_2, std_type="NAYY 4x50 SE", length_km=0.1, name="line2.2.2.2")
+pp.create_line(net, v2_2_2_1, v2_2_2_2, std_type="NAYY 4x50 SE", length_km=0.2, name="line2.2.2.2")
 #print(pp.available_std_types(net))                # zeigt mir verschiedene verfügbare Kabeltypen
 
 
@@ -99,6 +100,7 @@ pv_3_raw_data = pv_data["PV4"].values
 pv_1_data = pv_battery_model.pv_scale(pv_1_raw_data, 50) / 1000
 pv_2_data = pv_battery_model.pv_scale(pv_2_raw_data, 30) / 1000
 pv_3_data = pv_battery_model.pv_scale(pv_3_raw_data, 20) / 1000
+pv_4_data_x = 5 * pv_3_data
 """ -------- """
 
 """ LAST DATEN """
@@ -106,15 +108,35 @@ pv_3_data = pv_battery_model.pv_scale(pv_3_raw_data, 20) / 1000
 filename_load = "C:/Users/flori/EMS/EMS_Projekt/Flo/files/LoadProfile.csv"  # Daten liegen in 1/4 h Zeitschritten vor
 load_data = pd.read_csv(filename_load, delimiter=";", parse_dates=["time"], index_col="time")
 
-last1 = 10 * load_data["G1-B_pload"].values / 1000
+last1 = 10 * load_data["H0-A_pload"].values / 1000
 last2 = 20 * load_data["G2-A_pload"].values / 1000
-last3 = 15 * load_data["G1-C_pload"].values / 1000
+last3 = 15 * load_data["H0-B_pload"].values / 1000
 last4 = 10 * load_data["G3-A_pload"].values / 1000
 """ --------- """
 
-# Simulation über alle Zeitschritte -> ein Zeitschritt ist aufgrund 
-for t in range(8000):
+""" BATTERIE """
+b_2_2_2_2 = pv_battery_model.Battery(0, 100/1000, 20/1000, 20/1000)
+out_of_bounds = 0
+""" --------- """
 
+
+# Simulation über alle Zeitschritte -> ein Zeitschritt ist aufgrund 
+for t in range(600):
+
+    pv_power = pv_4_data_x[t]
+    
+    if(t>0):
+        if(net.res_bus.at[v2_2_2_2, "vm_pu"] > 1.025):
+            #pv_power = b_2_2_2_2.charge_quarter(pv_4_data_x[t] * 1/4) * 4
+            pv_power = b_2_2_2_2.charge(pv_4_data_x[t],1/4)
+        elif(net.res_bus.at[v2_2_2_2, "vm_pu"] < 0.975):
+            #pv_power = b_2_2_2_2.charge_quarter(-b_2_2_2_2.max_discharge * 1/4) * 4
+            #pv_power = b_2_2_2_2.max_discharge * 1/4 - remaining_pv
+            pv_power = pv_power + b_2_2_2_2.charge(-b_2_2_2_2.max_discharge, 1/4)
+            #pv_power = pv_power + b_2_2_2_2.charge(-2, 1/4)
+    
+    
+            
     # PV-Daten zuweisen
     net.sgen.at[e_1_1, "p_mw"] = pv_1_data[t]
     net.sgen.at[e_1_2, "p_mw"] = pv_1_data[t]
@@ -127,8 +149,26 @@ for t in range(8000):
     net.sgen.at[e_2_2_1_1, "p_mw"] = pv_3_data[t]
     net.sgen.at[e_2_2_1_2, "p_mw"] = pv_3_data[t]
     net.sgen.at[e_2_2_2_1, "p_mw"] = pv_3_data[t]
-    net.sgen.at[e_2_2_2_2, "p_mw"] = pv_3_data[t]
+    net.sgen.at[e_2_2_2_2, "p_mw"] = abs(pv_power)
+    #net.sgen.at[e_2_2_2_2, "q_mw"] = remaining_pv * 0.2
 
+    """
+    # PV-Daten zuweisen
+    net.sgen.at[e_1_1, "p_mw"] = pv_1_data[t]
+    net.sgen.at[e_1_2, "p_mw"] = pv_1_data[t]
+    net.sgen.at[e_1_2_1_1, "p_mw"] = pv_1_data[t]
+    net.sgen.at[e_1_2_1_2, "p_mw"] = pv_1_data[t]
+    net.sgen.at[e_1_2_2_1, "p_mw"] = pv_1_data[t]
+    net.sgen.at[e_1_2_2_2, "p_mw"] = pv_1_data[t]
+    net.sgen.at[e_2_1, "p_mw"] = pv_2_data[t]
+    net.sgen.at[e_2_2, "p_mw"] = pv_2_data[t]
+    net.sgen.at[e_2_2_1_1, "p_mw"] = pv_3_data[t]
+    net.sgen.at[e_2_2_1_2, "p_mw"] = pv_3_data[t]
+    net.sgen.at[e_2_2_2_1, "p_mw"] = pv_3_data[t]
+    net.sgen.at[e_2_2_2_2, "p_mw"] = 5*pv_3_data[t]
+    #net.sgen.at[e_2_2_2_2, "q_mw"] = 5*pv_3_data[t] * 0.2
+    """
+    
     #Lasten zuweisen
     net.load.at[l_1_1, "p_mw"] = last1[t]
     net.load.at[l_1_2, "p_mw"] = last2[t]
@@ -203,10 +243,12 @@ print(load_results)
 # Ergebnisse speichern in eine CSV Datei
 #results_df.to_csv("C:/Users/flori/EMS/EMS_Projekt/Flo/files/typical_pv_results.csv", index=False)
 
+
 plot.simple_plot(net, show_plot=True, plot_gens=True, plot_loads=True, plot_sgens=True)
 
+
 # Spannungen plotten
-plt.figure(figsize=(12, 6))
+plt.figure(2,figsize=(12, 6))
 plt.plot(results_df["time"], results_df["voltage_bus_lv"], label="LV Bus")
 plt.plot(results_df["time"], results_df["voltage_bus_1_1"], label="Bus 1-1")
 plt.plot(results_df["time"], results_df["voltage_bus_1_2_1_2"], label="Bus 1-2-1-2")
@@ -220,4 +262,11 @@ plt.ylabel("Spannung [p.u.]")
 plt.legend()
 plt.grid(True)
 plt.show()
+
+
+# Weg/Spannungs - Diagramm
+spannungsplot(net, results_df, 524)
+spannungsplot(net, results_df, 560)
+spannungsplot(net, results_df, 565)
+spannungsplot(net, results_df, 570)
 
