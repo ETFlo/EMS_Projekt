@@ -6,23 +6,34 @@ import pv_battery_model_v2 as pv_battery_model
 from pv_battery_model import Battery
 import matplotlib.pyplot as plt
 from plotfunktion import spannungsplot
+import math
 
-#Batterie erstellen test
-max_charge = marx_discharge = 5
-battery = Battery(SoC=50, max_capacity=12, max_charge=5, max_discharge=5)
+#Batterie erstellen 
+max_capacity = 12
+max_charge = max_discharge = 5
+best_case_SOC = max_capacity/2
+battery = Battery(best_case_SOC, max_capacity, max_charge, max_discharge)
 
 # Die battery_control Funktion definieren
+#Rückgabewert in % (auch negativ)
 def battery_control(lv_bus_value, battery_soc):
   
-    discharge_threshold = 0.98 + (battery_soc - 10) / 80 * (1.02 - 0.98)  # 10%-90%
-    charge_threshold = 0.99 - (battery_soc - 10) / 80 * (0.99 - 0.97)  # 10%-90%
+    # Dynamische Schwellenwerte basierend auf lv_bus_value und SoC
+    discharge_threshold = 1.00 + math.exp(0.05 * (battery_soc - best_case_SOC)) / 50  # Entladen
+    charge_threshold = 1.00 - math.exp(0.05 * (best_case_SOC - battery_soc)) / 50  # Laden
 
-    if lv_bus_value > discharge_threshold:
-        return "discharge"
-    elif lv_bus_value < charge_threshold:
-        return "charge"
+    # Berechnung der Lade-/Entladerate
+    if lv_bus_value > discharge_threshold or battery_soc > best_case_SOC:
+        # Entladen (je höher der SoC, desto aggressiver)
+        rate = (lv_bus_value - discharge_threshold) + (battery_soc - best_case_SOC) / 100
+        return -min(1, max(0, rate))  # Negative Werte für Entladen
+    elif lv_bus_value < charge_threshold or battery_soc < best_case_SOC:
+        # Laden (je niedriger der SoC, desto aggressiver)
+        rate = (charge_threshold - lv_bus_value) + (best_case_SOC - battery_soc) / 100
+        return min(1, max(0, rate))  # Positive Werte für Laden
     else:
-        return "neutral"
+        # Kein starkes Lade-/Entladebedürfnis
+        return 0.0
     
 
 # Erstellung eines leeren Netzes
@@ -231,15 +242,15 @@ for t in range(600):
         print(net.res_line)
     
     # Berechnung des aktuellen lv_bus_value (z.B. aus dem Netzobjekt, hier als Beispiel)
-    lv_bus_value = net.res_bus.at[lv_bus, "vm_pu"]  # Ablesen des aktuellen Spannungswerts (in p.u.)
+    lv_bus_value = net.res_bus.at[lv_bus, "vm_pu"]  # Ablesen des aktuellen Spannungswerts 
 
     # Aufruf der Batterie-Regelfunktion
     battery_soc = pv_battery_model.Battery.SoC
+    #battery_action Rückgabewert: -1 bis 1
     battery_action = battery_control(lv_bus_value, battery_soc)
-    if battery_action == "charge":
-        pv_battery_model.Battery.charge(battery,max_charge,0.25)
-    elif battery_action == "discharge":
-        pv_battery_model.Battery.charge(battery,-max_charge,0.25)
+    
+    pv_battery_model.Battery.charge(battery,max_charge*battery_action,0.25)
+
 
     
 
