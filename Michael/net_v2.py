@@ -7,7 +7,7 @@ from pv_battery_model import Battery
 import matplotlib.pyplot as plt
 from plotfunktion import spannungsplot
 
-#Batterie erstellen
+#Batterie erstellen test
 max_charge = marx_discharge = 5
 battery = Battery(SoC=50, max_capacity=12, max_charge=5, max_discharge=5)
 
