@@ -18,11 +18,11 @@ class Battery:
     def charge(self, power, time):           # Lädt wenn charge positiv und entlädt wenn charge negativ
 
         """
-        Gibt eine Lade-/Entladeleistung zurück, welche für das Netz zu Verfügung stellt in der Zeitspanne time
+        Gibt die Lade- bzw. Entladeleistung zurück, die dem Netz in der angegebenen Zeitspanne zur Verfügung gestellt wird.
 
-        :param charge: Jene Leistung in MW, die in einer bestimmten Zeitspanne auftritt
-        :param time: Zeitspanne in h
-        :return: Ladeleistung positiv, Entladeleistung negativ in MW
+        :param charge: Die Leistung in MW, die in einer bestimmten Zeitspanne bereitgestellt wird.
+        :param time: Die Zeitspanne in Stunden.
+        :return: Positive Ladeleistung, negative Entladeleistung in MW.
         """ 
 
         charge = power * time

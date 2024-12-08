@@ -115,8 +115,7 @@ last4 = 10 * load_data["G3-A_pload"].values / 1000
 """ --------- """
 
 """ BATTERIE """
-b_2_2_2_2 = pv_battery_model.Battery(0, 100/1000, 20/1000, 20/1000)
-out_of_bounds = 0
+b_2_2_2_2 = pv_battery_model.Battery(0/1000, 500/1000, 25/1000, 25/1000)
 """ --------- """
 
 
@@ -124,18 +123,7 @@ out_of_bounds = 0
 for t in range(600):
 
     pv_power = pv_4_data_x[t]
-    
-    if(t>0):
-        if(net.res_bus.at[v2_2_2_2, "vm_pu"] > 1.025):
-            #pv_power = b_2_2_2_2.charge_quarter(pv_4_data_x[t] * 1/4) * 4
-            pv_power = b_2_2_2_2.charge(pv_4_data_x[t],1/4)
-        elif(net.res_bus.at[v2_2_2_2, "vm_pu"] < 0.975):
-            #pv_power = b_2_2_2_2.charge_quarter(-b_2_2_2_2.max_discharge * 1/4) * 4
-            #pv_power = b_2_2_2_2.max_discharge * 1/4 - remaining_pv
-            pv_power = pv_power + b_2_2_2_2.charge(-b_2_2_2_2.max_discharge, 1/4)
-            #pv_power = pv_power + b_2_2_2_2.charge(-2, 1/4)
-    
-    
+        
             
     # PV-Daten zuweisen
     net.sgen.at[e_1_1, "p_mw"] = pv_1_data[t]
@@ -199,6 +187,7 @@ for t in range(600):
     net.load.at[l_2_2_2_2, "q_mvar"] = load_data["G1-B_qload"].iloc[t]
     """
 
+    
     # zum prüfen des Netzes, bei einer Fehlermeldung
     try:
         pp.runpp(net, max_iter=1500)
@@ -209,6 +198,21 @@ for t in range(600):
         print("Leitungsbelastungen:")
         print(net.res_line)
     
+
+    
+    if(net.res_bus.at[v2_2_2_2, "vm_pu"] > 1.025):
+        #pv_power = b_2_2_2_2.charge_quarter(pv_4_data_x[t] * 1/4) * 4
+        pv_power = b_2_2_2_2.charge(pv_4_data_x[t],1/4)
+        net.sgen.at[e_2_2_2_2, "p_mw"] = abs(pv_power)
+        pp.runpp(net)
+    elif(net.res_bus.at[v2_2_2_2, "vm_pu"] < 0.975):
+        #pv_power = b_2_2_2_2.charge_quarter(-b_2_2_2_2.max_discharge * 1/4) * 4
+        #pv_power = b_2_2_2_2.max_discharge * 1/4 - remaining_pv
+        #pv_power = pv_power + b_2_2_2_2.charge(-2, 1/4)
+        pv_power = pv_power + abs(b_2_2_2_2.charge(-b_2_2_2_2.max_discharge, 1/4))
+        net.sgen.at[e_2_2_2_2, "p_mw"] = pv_power
+        pp.runpp(net)
+
 
     # Ergebnisse speichern
     results.append({
