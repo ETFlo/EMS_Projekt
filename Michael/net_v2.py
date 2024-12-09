@@ -17,23 +17,60 @@ battery = Battery(best_case_SOC, max_capacity, max_charge, max_discharge)
 # Die battery_control Funktion definieren
 #Rückgabewert in % (auch negativ)
 def battery_control(lv_bus_value, battery_soc):
-  
-    # Dynamische Schwellenwerte basierend auf lv_bus_value und SoC
-    discharge_threshold = 1.00 + math.exp(0.05 * (battery_soc - best_case_SOC)) / 50  # Entladen
-    charge_threshold = 1.00 - math.exp(0.05 * (best_case_SOC - battery_soc)) / 50  # Laden
-
-    # Berechnung der Lade-/Entladerate
-    if lv_bus_value > discharge_threshold or battery_soc > best_case_SOC:
-        # Entladen (je höher der SoC, desto aggressiver)
-        rate = (lv_bus_value - discharge_threshold) + (battery_soc - best_case_SOC) / 100
-        return -min(1, max(0, rate))  # Negative Werte für Entladen
-    elif lv_bus_value < charge_threshold or battery_soc < best_case_SOC:
-        # Laden (je niedriger der SoC, desto aggressiver)
-        rate = (charge_threshold - lv_bus_value) + (best_case_SOC - battery_soc) / 100
-        return min(1, max(0, rate))  # Positive Werte für Laden
+    # Initialisierung von charge_rate basierend auf battery_soc und lv_bus_value
+    battery_soc = battery_soc * 100 / 12  # Umrechnung auf Skala von 0 bis 100
+    threshold = False
+    charge_rate = 0
+    
+    # Setze den Threshold nur, wenn sowohl der battery_soc als auch der lv_bus_value die Schwellenwerte überschreiten
+    if battery_soc >= 90 and lv_bus_value <= 1.03:
+        threshold = True
+    elif battery_soc >= 80 and battery_soc <= 90 and lv_bus_value <= 1.02333333:
+        threshold = True
+    elif battery_soc >= 70 and battery_soc <= 80 and lv_bus_value <= 1.02:
+        threshold = True
+    elif battery_soc >= 60 and battery_soc <= 70 and lv_bus_value <= 1.01666667:
+        threshold = True
+    elif battery_soc >= 50 and battery_soc <= 60 and lv_bus_value <= 1.00:
+        threshold = True
+    elif battery_soc >= 40 and battery_soc <= 50 and lv_bus_value >= 0.99666667:
+        threshold = True
+    elif battery_soc >= 30 and battery_soc <= 40 and lv_bus_value >= 0.99:
+        threshold = True
+    elif battery_soc >= 20 and battery_soc <= 30 and lv_bus_value >= 0.98333333:
+        threshold = True
+    elif battery_soc >= 10 and battery_soc <= 20 and lv_bus_value >= 0.97666667:
+        threshold = True
+    
+    # Überprüfen, ob der Threshold erreicht wurde, und berechne charge_rate
+    if threshold:
+        if battery_soc >= 90:
+            charge_rate = -0.90
+        elif battery_soc >= 80:
+            charge_rate = -0.77777778
+        elif battery_soc >= 70:
+            charge_rate = -0.55555556
+        elif battery_soc >= 60:
+            charge_rate = -0.33333333
+        elif battery_soc >= 50:
+            charge_rate = -0.0
+        elif battery_soc >= 40:
+            charge_rate = 0.11111111
+        elif battery_soc >= 30:
+            charge_rate = 0.33333333
+        elif battery_soc >= 20:
+            charge_rate = 0.55555556
+        elif battery_soc <= 10:
+            charge_rate = 0.77777778
+        charge_rate = charge_rate * battery_soc / 100  # Skalierung auf den SOC-Wert
     else:
-        # Kein starkes Lade-/Entladebedürfnis
-        return 0.0
+        # Berechne charge_rate auch für kleine SOC-Werte (z.B. 2, 3)
+        if battery_soc < 10:
+            charge_rate = 1 * (battery_soc / 10)  # Setze einen Wert nahe 1, abhängig von SOC
+        elif battery_soc < 20:
+            charge_rate = 0.5 * (battery_soc / 10)  # Lineare Steigerung bis 20% SOC
+    
+    return charge_rate
     
 
 # Erstellung eines leeren Netzes
