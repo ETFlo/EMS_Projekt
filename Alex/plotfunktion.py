@@ -1,4 +1,6 @@
 import plotly.graph_objs as go
+from pv_battery_model_v2 import Battery
+
 
 def spannungsplot(net, results_df, time):
 
@@ -81,3 +83,72 @@ def spannungsplot(net, results_df, time):
     # Create figure and show
     fig = go.Figure(data=data, layout=layout)
     fig.show()
+
+def battery_control(lv_bus_value, battery_soc, max_soc):
+    # Initialisierung von charge_rate basierend auf battery_soc und lv_bus_value
+    battery_soc = battery_soc * 100 / max_soc  # Umrechnung auf Skala von 0 bis 100
+    threshold = False
+    charge_rate = 0
+
+    # Setze den Threshold nur, wenn sowohl der battery_soc als auch der lv_bus_value die Schwellenwerte überschreiten
+    if battery_soc >=10 and lv_bus_value <= 0.975:
+        return -1
+    if battery_soc <=90 and lv_bus_value > 1:
+        return 1
+    '''
+    if battery_soc >= 90 and lv_bus_value <= 1.03:
+        threshold = True
+    elif battery_soc >= 80 and battery_soc <= 90 and lv_bus_value <= 1.02333333:
+        threshold = True
+    elif battery_soc >= 70 and battery_soc <= 80 and lv_bus_value <= 1.02:
+        threshold = True
+    elif battery_soc >= 60 and battery_soc <= 70 and lv_bus_value <= 1.01666667:
+        threshold = True
+    elif battery_soc >= 50 and battery_soc <= 60 and lv_bus_value <= 1.00:
+        threshold = True
+    elif battery_soc >= 40 and battery_soc <= 50 and lv_bus_value >= 0.99666667:
+        threshold = True
+    elif battery_soc >= 30 and battery_soc <= 40 and lv_bus_value >= 0.99:
+        threshold = True
+    elif battery_soc >= 20 and battery_soc <= 30 and lv_bus_value >= 0.98333333:
+        threshold = True
+    elif battery_soc >= 10 and battery_soc <= 20 and lv_bus_value >= 0.97666667:
+        threshold = True
+
+    # Überprüfen, ob der Threshold erreicht wurde, und berechne charge_rate
+    if threshold:
+        if battery_soc >= 90:
+            charge_rate = -0.90
+        elif battery_soc >= 80:
+            charge_rate = -0.77777778
+        elif battery_soc >= 70:
+            charge_rate = -0.55555556
+        elif battery_soc >= 60:
+            charge_rate = -0.33333333
+        elif battery_soc >= 50:
+            charge_rate = -0.0
+        elif battery_soc >= 40:
+            charge_rate = 0.11111111
+        elif battery_soc >= 30:
+            charge_rate = 0.33333333
+        elif battery_soc >= 20:
+            charge_rate = 0.55555556
+        elif battery_soc <= 10:
+            charge_rate = 0.77777778
+        charge_rate = charge_rate * battery_soc / 100  # Skalierung auf den SOC-Wert
+    else:
+        # Berechne charge_rate auch für kleine SOC-Werte (z.B. 2, 3)
+        if battery_soc < 10:
+            charge_rate = 1 * (battery_soc / 10)  # Setze einen Wert nahe 1, abhängig von SOC
+        elif battery_soc < 20:
+            charge_rate = 0.5 * (battery_soc / 10)  # Lineare Steigerung bis 20% SOC
+    '''
+    return charge_rate
+
+def get_index(net, type, name):
+    to_exec = f"net.{type}[net.{type}[\"name\"] == \"{name}\"].index[0]"
+    return eval(to_exec)
+
+if __name__ == "__main__":
+    #Batterie = Battery(0/1000, 500/1000, 25/1000, 25/1000)
+    print(battery_control(0.8, 500, 1000))
