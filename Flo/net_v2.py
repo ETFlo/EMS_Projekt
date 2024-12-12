@@ -6,6 +6,67 @@ import pv_battery_model_v2 as pv_battery_model
 import matplotlib.pyplot as plt
 from plotfunktion import spannungsplot
 
+
+
+# Die battery_control Funktion definieren
+#Rückgabewert in % (auch negativ)
+def battery_control(vm_pu, battery_soc):
+    # Initialisierung von charge_rate basierend auf battery_soc und vm_pu
+    battery_soc = battery_soc * 100 / 12  # Umrechnung auf Skala von 0 bis 100
+    threshold = False
+    charge_rate = 0
+    
+    # Setze den Threshold nur, wenn sowohl der battery_soc als auch der vm_pu die Schwellenwerte überschreiten
+    if battery_soc >= 90 and vm_pu <= 1.03:
+        threshold = True
+    elif battery_soc >= 80 and battery_soc <= 90 and vm_pu <= 1.02333333:
+        threshold = True
+    elif battery_soc >= 70 and battery_soc <= 80 and vm_pu <= 1.02:
+        threshold = True
+    elif battery_soc >= 60 and battery_soc <= 70 and vm_pu <= 1.01666667:
+        threshold = True
+    elif battery_soc >= 50 and battery_soc <= 60 and vm_pu <= 1.00:
+        threshold = True
+    elif battery_soc >= 40 and battery_soc <= 50 and vm_pu >= 0.99666667:
+        threshold = True
+    elif battery_soc >= 30 and battery_soc <= 40 and vm_pu >= 0.99:
+        threshold = True
+    elif battery_soc >= 20 and battery_soc <= 30 and vm_pu >= 0.98333333:
+        threshold = True
+    elif battery_soc >= 10 and battery_soc <= 20 and vm_pu >= 0.97666667:
+        threshold = True
+    
+    # Überprüfen, ob der Threshold erreicht wurde, und berechne charge_rate
+    if threshold:
+        if battery_soc >= 90:
+            charge_rate = -0.90
+        elif battery_soc >= 80:
+            charge_rate = -0.77777778
+        elif battery_soc >= 70:
+            charge_rate = -0.55555556
+        elif battery_soc >= 60:
+            charge_rate = -0.33333333
+        elif battery_soc >= 50:
+            charge_rate = -0.0
+        elif battery_soc >= 40:
+            charge_rate = 0.11111111
+        elif battery_soc >= 30:
+            charge_rate = 0.33333333
+        elif battery_soc >= 20:
+            charge_rate = 0.55555556
+        elif battery_soc <= 10:
+            charge_rate = 0.77777778
+        charge_rate = charge_rate * battery_soc / 100  # Skalierung auf den SOC-Wert
+    else:
+        # Berechne charge_rate auch für kleine SOC-Werte (z.B. 2, 3)
+        if battery_soc < 10:
+            charge_rate = 1 * (battery_soc / 10)  # Setze einen Wert nahe 1, abhängig von SOC
+        elif battery_soc < 20:
+            charge_rate = 0.5 * (battery_soc / 10)  # Lineare Steigerung bis 20% SOC
+    
+    return charge_rate
+
+
 # Erstellung eines leeren Netzes
 net = pp.create_empty_network()
 
@@ -199,7 +260,7 @@ for t in range(600):
         print(net.res_line)
     
 
-    
+    # Erster Versuch den Spannungsabfall mit Hilfe der Batterie zu regulieren
     if(net.res_bus.at[v2_2_2_2, "vm_pu"] > 1.025):
         #pv_power = b_2_2_2_2.charge_quarter(pv_4_data_x[t] * 1/4) * 4
         pv_power = b_2_2_2_2.charge(pv_4_data_x[t],1/4)
@@ -211,8 +272,20 @@ for t in range(600):
         #pv_power = pv_power + b_2_2_2_2.charge(-2, 1/4)
         pv_power = pv_power + abs(b_2_2_2_2.charge(-b_2_2_2_2.max_discharge, 1/4))
         net.sgen.at[e_2_2_2_2, "p_mw"] = pv_power
-        pp.runpp(net)
+        pp.runpp(net) 
 
+            
+    '''
+    battery_action = battery_control(net.res_bus.at[v2_2_2_2, "vm_pu"], b_2_2_2_2.SoC)
+    if(battery_action > 0)
+        b_2_2_2_2.max_charge = battery_action
+    elif
+
+    power = b_2_2_2_2.charge(pv_4_data_x[t], battery_action,1/4)
+    if(pv_power > 0) 
+    net.sgen.at[e_2_2_2_2, "p_mw"] = abs(pv_power)
+    pp.runpp(net)
+    '''
 
     # Ergebnisse speichern
     results.append({
