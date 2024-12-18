@@ -32,3 +32,6 @@ dash_bootstrap_components
 black
 isort
 jupyterlab-code-formatter
+
+
+conda install "numba<0.60"

@@ -32,11 +32,11 @@ class Battery:
         sum = self.SoC + charge
 
         if charge >= 0:
-            self.SoC = min(self.SoC + charge, self.max_capacity, self.SoC + max_charge_time)    # Finde neue SoC beim Laden
-            sum = sum - self.SoC                                                                   # sum -> Jener Wert der nicht in die Batterie geladen werden konnte
+            self.SoC = min(self.SoC + charge, self.max_capacity, self.SoC + max_charge_time)
+            sum = self.SoC - sum + charge                                                       # sum -> Jener Wert der in die Batterie geladen werden konnte
         else:
-            self.SoC = max(self.SoC + charge, 0, self.SoC - max_discharge_time)                 # Finde neue SoC beim Entladen
-            sum = self.SoC - sum + charge                                                          # sum -> Jener Wert den die Batterie entlädt, also den Netz zu Verfügung stellt -> <= 0
+            self.SoC = max(self.SoC + charge, 0, self.SoC - max_discharge_time)
+            sum = self.SoC - sum + charge                                                       # sum -> Jener Wert den die Batterie entlädt, also den Netz zu Verfügung stellt -> <= 0
         match self.SoC:             # Erhöhe Leer oder Voll wenn SoC gleich 0 oder max capacity erreicht wurde
             case 0:
                 self.time_empty += 1
