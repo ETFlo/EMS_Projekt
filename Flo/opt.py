@@ -20,7 +20,7 @@ def opt():
 
     #result = minimize(object_function, x0, bounds = bounds_power)
     #result = minimize(object_function, x0, bounds = bounds_power,  method = "Nelder-Mead")
-    result = differential_evolution(object_function, bounds = bounds_power, x0 = x0, popsize=2)
+    result = differential_evolution(object_function, bounds = bounds_power, x0 = x0, popsize=6)
 
     opt_time = time.time() - opt_time
 

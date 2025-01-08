@@ -7,8 +7,6 @@ import matplotlib.pyplot as plt
 from plotfunktion import spannungsplot
 
 
-
-# Die battery_control Funktion definieren
 #Rückgabewert in % (auch negativ)
 def battery_control(vm_pu, soc_percent, vm_low_weight, vm_high_weight, low_exp, high_exp):
     """
@@ -22,7 +20,7 @@ def battery_control(vm_pu, soc_percent, vm_low_weight, vm_high_weight, low_exp, 
     :param vm_pu: Der Eingangswert (float)
     :return: Der berechnete Rückgabewert (float)
     """
-    #vm_pu = vm_pu + 0.02       #   verschiebt die Lade-/Entladelogik um den Wert z.B. 2 % 
+    #vm_pu = vm_pu + 0.02       #   verschiebt die Lade-/Entladelogik um den Wert x % -> z.B. + 2 % nach unten verschieben
 
     if vm_pu < 0.97:
         return -1
@@ -39,9 +37,7 @@ def battery_control(vm_pu, soc_percent, vm_low_weight, vm_high_weight, low_exp, 
 
 
 def voltage_range_exceedance(v_max, v_min, band):
-    if(abs(1 - v_min) > 0.03):
-        return 1
-    elif(abs(v_max - 1) > 0.03):
+    if(abs(1 - v_min) > band or abs(v_max - 1) > band):
         return 1
     else:
         return 0
@@ -127,6 +123,7 @@ def simulate(bat1_max_charge, bat1_max_discharge, bat2_max_charge, bat2_max_disc
 
     # Ergebnisse speichern
     results = []
+    results_battery = []
 
 
     """ PV DATEN """
@@ -274,7 +271,6 @@ def simulate(bat1_max_charge, bat1_max_discharge, bat2_max_charge, bat2_max_disc
 
         pp.runpp(net)
         
-
         
         # Ergebnisse speichern
         results.append({
@@ -304,17 +300,22 @@ def simulate(bat1_max_charge, bat1_max_discharge, bat2_max_charge, bat2_max_disc
             voltage_difference = abs(max_vm_pu - 1)
         if(abs(1 - min_vm_pu) > voltage_difference):
             voltage_difference = abs(1 - min_vm_pu)
+
+
+        # Ergebnis Batterie speichern
+        results_battery.append({
+            "time": t,
+            "SoC_battery_b_1_2_1_1": b_1_2_1_1.SoC,
+            "SoC_battery_b_2_2_2_2": b_2_2_2_2.SoC
+        })
         
     
 
     
-    
     # Ergebnisse in DataFrame umwandeln
     results_df = pd.DataFrame(results)
+    results_battery_df = pd.DataFrame(results_battery)
     #print(results_df.head())
-
-    # Lastfluss-Berechnung 
-    #pp.runpp(net)
 
 
     #load_results = net.res_load.join(net.load["name"], how='left')
@@ -344,6 +345,19 @@ def simulate(bat1_max_charge, bat1_max_discharge, bat2_max_charge, bat2_max_disc
     plt.show()
 
 
+    # Spannungen plotten
+    plt.figure(3,figsize=(12, 6))
+    plt.plot(results_battery_df["time"], results_battery_df["SoC_battery_b_1_2_1_1"], label="SOC_battery_b_1_2_1_1")
+    plt.plot(results_battery_df["time"], results_battery_df["SoC_battery_b_2_2_2_2"], label="SOC_battery_b_2_2_2_2")
+
+    # Titel, Labels und Legende
+    plt.title("SoC Batterie")
+    plt.xlabel("Zeit")
+    plt.ylabel("MWh")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
     # Weg/Spannungs - Diagramm
     #spannungsplot(net, results_df, 524)
     #spannungsplot(net, results_df, 560)
@@ -359,10 +373,17 @@ def simulate(bat1_max_charge, bat1_max_discharge, bat2_max_charge, bat2_max_disc
 
 
 if __name__ == "__main__":
-    #v_delta = simulate(1.000e+01,  1.532e+01,  1.000e+01,  1.045e+01,  5.000e-01, 5.000e-01,  2.000e+00,  2.000e+00)    # Standardverfahren
-    #v_delta = simulate(2.758e+01,  2.253e+01,  1.762e+01,  1.089e+01,  1.824e-02, 4.453e-01,  8.551e+00,  3.067e-02)    # Nelder-Mead Verfahren
-    #v_delta = simulate(4.663e+01,  2.184e+01,  5.455e+01,  9.744e+00, 5.136e-02,  3.376e-01,  3.754e+00,  2.332e+00)    # Differential-Evolution Verfahren
+    #v_delta = simulate(1.000e+01,  1.532e+01,  1.000e+01,  1.045e+01,  5.000e-01, 5.000e-01,  2.000e+00,  2.000e+00)    # Standardverfahren t -> 0 - 600
+    #v_delta = simulate(2.758e+01,  2.253e+01,  1.762e+01,  1.089e+01,  1.824e-02, 4.453e-01,  8.551e+00,  3.067e-02)    # Nelder-Mead Verfahren t -> 0 - 600
+    #v_delta = simulate(4.663e+01,  2.184e+01,  5.455e+01,  9.744e+00, 5.136e-02,  3.376e-01,  3.754e+00,  2.332e+00)    # Differential-Evolution Verfahren t -> 0 - 600
 
-    #overstepping_voltage = simulate(1.086e+01,  1.438e+01,  1.007e+01,  1.153e+01,  4.957e-01, 4.325e-01,  1.691e+00,  2.687e+00)    # Standardverfahren
-    overstepping_voltage = simulate(4.757e+01,  2.158e+01,  1.161e+01,  1.071e+01, 3.059e-01,  6.506e-01, 5.513e+00,  8.571e-01)    # Differential-Evolution Verfahren
+    #overstepping_voltage = simulate(1.086e+01,  1.438e+01,  1.007e+01,  1.153e+01,  4.957e-01, 4.325e-01,  1.691e+00,  2.687e+00)    # Standardverfahren t -> 0 - 600
+    #overstepping_voltage = simulate(4.757e+01,  2.158e+01,  1.161e+01,  1.071e+01, 3.059e-01,  6.506e-01, 5.513e+00,  8.571e-01)     # Differential-Evolution Verfahren t -> 0 - 600
 
+    #no_battery = simulate(0, 0, 0, 0, 0, 0, 0, 0)
+
+    
+    #overstepping_voltage = simulate( 4.761e+01 , 4.530e+01,  2.176e+01 , 2.434e+00,2.548e-01 , 3.294e-01,  7.514e+00,  6.055e+00)  # Differential-Evolution Verfahren t -> 15000 - 15600
+    #voltage_difference = simulate(8.252e+01, 4.002e+01,  2.824e+01 , 6.400e+00, 2.041e-01,  4.289e-01 , 6.636e-01 , 7.896e+00)     # Differential-Evolution Verfahren t -> 15000 - 15600 popsize = 3
+    overstepping_voltage = simulate(4.758e+01 , 2.847e+01 , 2.330e+01  ,7.205e+00,  5.220e-01,  1.704e-01,  5.831e+00 , 3.784e+00)  # Differential-Evolution Verfahren t -> 15000 - 15600 popsize = 5 
+    #voltage_difference = simulate(8.181e+01 , 8.051e+01 , 4.757e+01,  2.215e+01, 6.423e-02 , 8.039e-01,  5.753e-01  ,7.633e+00)    # Differential-Evolution Verfahren t -> 15000 - 15600 popsize = 6
