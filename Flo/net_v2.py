@@ -140,10 +140,13 @@ def simulate(bat1_max_charge, bat1_max_discharge, bat2_max_charge, bat2_max_disc
     #pv_1_data = pv_battery_model.pv(50, filename_pv) / 1000
     #pv_2_data = pv_battery_model.pv(50, filename_pv) / 1000
     #pv_3_data = pv_battery_model.pv(20, filename_pv) / 1000
+    
+    
+    scale = 1
 
-    pv_1_data = pv_battery_model.pv_scale(pv_1_raw_data, 50) / 1000
-    pv_2_data = pv_battery_model.pv_scale(pv_2_raw_data, 30) / 1000
-    pv_3_data = pv_battery_model.pv_scale(pv_3_raw_data, 20) / 1000
+    pv_1_data = scale * (pv_battery_model.pv_scale(pv_1_raw_data, 50) / 1000)
+    pv_2_data = scale * (pv_battery_model.pv_scale(pv_2_raw_data, 30) / 1000)
+    pv_3_data = scale * (pv_battery_model.pv_scale(pv_3_raw_data, 20) / 1000)
     """ -------- """
 
     """ LAST DATEN """
@@ -151,6 +154,7 @@ def simulate(bat1_max_charge, bat1_max_discharge, bat2_max_charge, bat2_max_disc
     filename_load = "C:/Users/flori/EMS/EMS_Projekt/Flo/files/LoadProfile.csv"  # Daten liegen in 1/4 h Zeitschritten vor
     load_data = pd.read_csv(filename_load, delimiter=";", parse_dates=["time"], index_col="time")
 
+    
     last1 = 10 * load_data["H0-A_pload"].values / 1000
     last2 = 20 * load_data["G2-A_pload"].values / 1000
     last3 = 15 * load_data["H0-B_pload"].values / 1000
@@ -158,14 +162,14 @@ def simulate(bat1_max_charge, bat1_max_discharge, bat2_max_charge, bat2_max_disc
     """ --------- """
 
     """ BATTERIE """
-    b_1_2_1_1 = pv_battery_model.Battery(SoC = 1000/1000, max_capacity = 2000/1000, max_charge = bat1_max_charge / 1000, max_discharge = bat1_max_discharge / 1000)
+    b_1_2_1_2 = pv_battery_model.Battery(SoC = 1000/1000, max_capacity = 2000/1000, max_charge = bat1_max_charge / 1000, max_discharge = bat1_max_discharge / 1000)
     b_2_2_2_2 = pv_battery_model.Battery(SoC = 1000/1000, max_capacity = 2000/1000, max_charge = bat2_max_charge / 1000, max_discharge = bat2_max_discharge / 1000)
     """ --------- """
 
     voltage_difference = 0.0
 
 
-    for t in range(600):
+    for t in range(24000,24600):
                 
         # PV-Daten zuweisen
         net.sgen.at[e_1_1, "p_mw"] = pv_1_data[t]
@@ -256,13 +260,13 @@ def simulate(bat1_max_charge, bat1_max_discharge, bat2_max_charge, bat2_max_disc
         """
 
         
-        battery_action1 = battery_control(net.res_bus.at[v1_2_1_1, "vm_pu"], b_1_2_1_1.SoC / b_1_2_1_1.max_capacity, battery_low_weight, battery_high_weight, battery_low_exp, battery_high_exp)
+        battery_action1 = battery_control(net.res_bus.at[v1_2_1_2, "vm_pu"], b_1_2_1_2.SoC / b_1_2_1_2.max_capacity, battery_low_weight, battery_high_weight, battery_low_exp, battery_high_exp)
         battery_action2 = battery_control(net.res_bus.at[v2_2_2_2, "vm_pu"], b_2_2_2_2.SoC / b_2_2_2_2.max_capacity, battery_low_weight, battery_high_weight, battery_low_exp, battery_high_exp)
 
         if(battery_action1 > 0):                                
-            net.sgen.at[e_1_2_1_1, "p_mw"] = net.sgen.at[e_1_2_1_1, "p_mw"] - b_1_2_1_1.charge(battery_action1*b_1_2_1_1.max_charge, 1/4)
+            net.sgen.at[e_1_2_1_2, "p_mw"] = net.sgen.at[e_1_2_1_2, "p_mw"] - b_1_2_1_2.charge(battery_action1*b_1_2_1_2.max_charge, 1/4)
         else:
-            net.sgen.at[e_1_2_1_1, "p_mw"] = net.sgen.at[e_1_2_1_1, "p_mw"] - b_1_2_1_1.charge(battery_action1*b_1_2_1_1.max_discharge, 1/4)
+            net.sgen.at[e_1_2_1_2, "p_mw"] = net.sgen.at[e_1_2_1_2, "p_mw"] - b_1_2_1_2.charge(battery_action1*b_1_2_1_2.max_discharge, 1/4)
 
         if(battery_action2 > 0):
             net.sgen.at[e_2_2_2_2, "p_mw"] = net.sgen.at[e_2_2_2_2, "p_mw"] - b_2_2_2_2.charge(battery_action2*b_2_2_2_2.max_charge, 1/4)
@@ -305,7 +309,7 @@ def simulate(bat1_max_charge, bat1_max_discharge, bat2_max_charge, bat2_max_disc
         # Ergebnis Batterie speichern
         results_battery.append({
             "time": t,
-            "SoC_battery_b_1_2_1_1": b_1_2_1_1.SoC,
+            "SoC_battery_b_1_2_1_2": b_1_2_1_2.SoC,
             "SoC_battery_b_2_2_2_2": b_2_2_2_2.SoC
         })
         
@@ -322,7 +326,7 @@ def simulate(bat1_max_charge, bat1_max_discharge, bat2_max_charge, bat2_max_disc
     #print(load_results)
 
     # Ergebnisse speichern in eine CSV Datei
-    #results_df.to_csv("C:/Users/flori/EMS/EMS_Projekt/Flo/files/typical_pv_results.csv", index=False)
+    # results_df.to_csv("C:/Users/flori/EMS/EMS_Projekt/Flo/files/typical_pv_results.csv", index=False)
 
 
     plot.simple_plot(net, show_plot=True, plot_gens=True, plot_loads=True, plot_sgens=True)
@@ -332,7 +336,7 @@ def simulate(bat1_max_charge, bat1_max_discharge, bat2_max_charge, bat2_max_disc
     plt.figure(2,figsize=(12, 6))
     plt.plot(results_df["time"], results_df["voltage_bus_lv"], label="LV Bus")
     plt.plot(results_df["time"], results_df["voltage_bus_1_1"], label="Bus 1-1")
-    plt.plot(results_df["time"], results_df["voltage_bus_1_2_1_1"], label="Bus 1-2-1-1")
+    plt.plot(results_df["time"], results_df["voltage_bus_1_2_1_2"], label="Bus 1-2-1-1")
     plt.plot(results_df["time"], results_df["voltage_bus_2_2"], label="Bus 2-2")
     plt.plot(results_df["time"], results_df["voltage_bus_2_2_2_2"], label="Bus 2-2-2-2")
 
@@ -347,7 +351,7 @@ def simulate(bat1_max_charge, bat1_max_discharge, bat2_max_charge, bat2_max_disc
 
     # Spannungen plotten
     plt.figure(3,figsize=(12, 6))
-    plt.plot(results_battery_df["time"], results_battery_df["SoC_battery_b_1_2_1_1"], label="SOC_battery_b_1_2_1_1")
+    plt.plot(results_battery_df["time"], results_battery_df["SoC_battery_b_1_2_1_2"], label="SOC_battery_b_1_2_1_2")
     plt.plot(results_battery_df["time"], results_battery_df["SoC_battery_b_2_2_2_2"], label="SOC_battery_b_2_2_2_2")
 
     # Titel, Labels und Legende
@@ -373,6 +377,9 @@ def simulate(bat1_max_charge, bat1_max_discharge, bat2_max_charge, bat2_max_disc
 
 
 if __name__ == "__main__":
+
+    # Batterie bei dem Knoten -> 1_2_1_1
+    ##############################
     #v_delta = simulate(1.000e+01,  1.532e+01,  1.000e+01,  1.045e+01,  5.000e-01, 5.000e-01,  2.000e+00,  2.000e+00)    # Standardverfahren t -> 0 - 600
     #v_delta = simulate(2.758e+01,  2.253e+01,  1.762e+01,  1.089e+01,  1.824e-02, 4.453e-01,  8.551e+00,  3.067e-02)    # Nelder-Mead Verfahren t -> 0 - 600
     #v_delta = simulate(4.663e+01,  2.184e+01,  5.455e+01,  9.744e+00, 5.136e-02,  3.376e-01,  3.754e+00,  2.332e+00)    # Differential-Evolution Verfahren t -> 0 - 600
@@ -383,7 +390,17 @@ if __name__ == "__main__":
     #no_battery = simulate(0, 0, 0, 0, 0, 0, 0, 0)
 
     
-    #overstepping_voltage = simulate( 4.761e+01 , 4.530e+01,  2.176e+01 , 2.434e+00,2.548e-01 , 3.294e-01,  7.514e+00,  6.055e+00)  # Differential-Evolution Verfahren t -> 15000 - 15600
+    #overstepping_voltage = simulate( 4.761e+01, 4.530e+01,  2.176e+01 , 2.434e+00,2.548e-01 , 3.294e-01,  7.514e+00,  6.055e+00)   # Differential-Evolution Verfahren t -> 15000 - 15600
     #voltage_difference = simulate(8.252e+01, 4.002e+01,  2.824e+01 , 6.400e+00, 2.041e-01,  4.289e-01 , 6.636e-01 , 7.896e+00)     # Differential-Evolution Verfahren t -> 15000 - 15600 popsize = 3
-    overstepping_voltage = simulate(4.758e+01 , 2.847e+01 , 2.330e+01  ,7.205e+00,  5.220e-01,  1.704e-01,  5.831e+00 , 3.784e+00)  # Differential-Evolution Verfahren t -> 15000 - 15600 popsize = 5 
-    #voltage_difference = simulate(8.181e+01 , 8.051e+01 , 4.757e+01,  2.215e+01, 6.423e-02 , 8.039e-01,  5.753e-01  ,7.633e+00)    # Differential-Evolution Verfahren t -> 15000 - 15600 popsize = 6
+    #overstepping_voltage = simulate(4.758e+01, 2.847e+01 , 2.330e+01  ,7.205e+00,  5.220e-01,  1.704e-01,  5.831e+00 , 3.784e+00)  # Differential-Evolution Verfahren t -> 15000 - 15600 popsize = 5 
+    #voltage_difference = simulate(8.181e+01, 8.051e+01 , 4.757e+01,  2.215e+01, 6.423e-02 , 8.039e-01,  5.753e-01  ,7.633e+00)     # Differential-Evolution Verfahren t -> 15000 - 15600 popsize = 6
+
+    #overstepping_voltage = simulate(4.660e+01,  4.617e+01,  2.292e+01, 3.895e+00, 5.336e-01, 8.694e-01,  9.456e+00, 1.206e+00)      # Differential-Evolution Verfahren t -> 24000 - 24600 popsize = 5
+    ################################
+
+    # Batterie bei dem Knoten -> 1_2_1_2
+    ##############################
+    #overstepping_voltage = simulate( 6.875e+01,  1.739e+01,  3.811e+01,  1.768e+01, 1.270e-02,  6.983e-01,  9.110e+00,  7.176e+00)     # Differential-Evolution Verfahren t -> 0 - 600 popsize = 5
+    #overstepping_voltage = simulate(4.531e+01 , 3.015e+01 , 2.191e+01 , 7.963e+00, 4.904e-01,  4.804e-01 , 5.454e+00,  8.301e-01)     # Differential-Evolution Verfahren t -> 15000 - 15600 popsize = 5
+    overstepping_voltage = simulate(3.566e+01,  3.052e+01,  2.459e+01,  7.413e+00, 5.553e-01,  5.271e-01,  1.673e+00,  7.157e-01)     # Differential-Evolution Verfahren t -> 24000 - 24600 popsize = 5
+    ##############################
