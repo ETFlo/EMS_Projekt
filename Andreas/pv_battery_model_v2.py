@@ -6,20 +6,73 @@ from dataclasses import dataclass
 @dataclass
 class Battery:
     #def __init__(self, SoC=0, max_capacity=10):
-    SoC:float = 0                     # Ladezustand in kWh
-    max_capacity:float = 10             # Maximale Kapazität in kWh
-    max_charge:float = 5                # Maximale Ladeleistung in kW
-    max_discharge:float = 5             # Maximale Entladeleistung in kW
-    time_full:float = 0                  # Zeit, in der die Batterie voll ist
-    time_empty:float = 0                 # Zeit, in der die Batterie leer ist
+    SoC:float = 0 / 1000                     # Ladezustand in kWh
+    max_capacity:float = 10 / 1000           # Maximale Kapazität in kWh
+    max_charge:float = 5 / 1000              # Maximale Ladeleistung in kW
+    max_discharge:float = 5 / 1000           # Maximale Entladeleistung in kW
+    time_full:float = 0                      # Zeit, in der die Batterie voll ist
+    time_empty:float = 0                     # Zeit, in der die Batterie leer ist
 
-    def charge(self, charge):           #Ladet wenn charge positiv und entladet wenn charge negativ
+    
+
+    def charge(self, power, time):           # Lädt wenn charge positiv und entlädt wenn charge negativ
+
+        """
+        Gibt die Lade- bzw. Entladeleistung zurück, die dem Netz in der angegebenen Zeitspanne zur Verfügung gestellt wird.
+
+        :param charge: Die Leistung in MW, die in einer bestimmten Zeitspanne bereitgestellt wird.
+        :param time: Die Zeitspanne in Stunden.
+        :return: Positive Ladeleistung, negative Entladeleistung in MW.
+        """ 
+
+        charge = power * time
+        max_charge_time = self.max_charge * time
+        max_discharge_time = self.max_discharge * time
+
+        sum = self.SoC + charge
+
+        if charge >= 0:
+            self.SoC = min(self.SoC + charge, self.max_capacity, self.SoC + max_charge_time)
+            sum = self.SoC - sum + charge                                                       # sum -> Jener Wert der in die Batterie geladen werden konnte
+        else:
+            self.SoC = max(self.SoC + charge, 0, self.SoC - max_discharge_time)
+            sum = self.SoC - sum + charge                                                       # sum -> Jener Wert den die Batterie entlädt, also den Netz zu Verfügung stellt -> <= 0
+        match self.SoC:             # Erhöhe Leer oder Voll wenn SoC gleich 0 oder max capacity erreicht wurde
+            case 0:
+                self.time_empty += 1
+            case self.max_capacity:
+                self.time_full += 1
+        return (sum / time)
+
+
+    def charge_full(self, charge):           # Lädt wenn charge positiv und entlädt wenn charge negativ
             remaining_power = self.SoC + charge
             if charge >= 0:
                 self.SoC = min(self.SoC + charge, self.max_capacity, self.SoC + self.max_charge)    # Finde neue SoC beim Laden
                 remaining_power = remaining_power - self.SoC
             else:
                 self.SoC = max(self.SoC + charge, 0, self.SoC - self.max_discharge)                 # Finde neue SoC beim Entladen
+                remaining_power = self.SoC - remaining_power
+            match self.SoC:             # Erhöhe Leer oder Voll wenn SoC gleich 0 oder max capacity erreicht wurde
+                case 0:
+                      self.time_empty += 1
+                case self.max_capacity:
+                      self.time_full += 1
+            return remaining_power
+    
+    # der übergebene parameter "charge", ist ein Energiewert in kWh für eine Viertelstunde
+    def charge_quarter(self, charge):           # Lädt wenn charge positiv und entlädt wenn charge negativ
+            
+            remaining_power = self.SoC + charge
+
+            max_charge_quarter = self.max_charge / 4
+            max_discharge_quarter = self.max_discharge / 4
+
+            if charge >= 0:
+                self.SoC = min(self.SoC + charge, self.max_capacity, self.SoC + max_charge_quarter)    # Finde neue SoC beim Laden
+                remaining_power = remaining_power - self.SoC
+            else:
+                self.SoC = max(self.SoC + charge, 0, self.SoC - max_discharge_quarter)                 # Finde neue SoC beim Entladen
                 remaining_power = self.SoC - remaining_power
             match self.SoC:             # Erhöhe Leer oder Voll wenn SoC gleich 0 oder max capacity erreicht wurde
                 case 0:
